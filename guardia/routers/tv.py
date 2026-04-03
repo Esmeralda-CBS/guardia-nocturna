@@ -39,7 +39,8 @@ def tv_display(request: Request, shift_id: int):
             except ValueError:
                 return (1, r)
 
-        sorted_rooms = sorted(rooms.keys(), key=room_sort_key)
+        # Descending: pieza 4 at top of building, pieza 1 at bottom
+        sorted_rooms = sorted(rooms.keys(), key=room_sort_key, reverse=True)
 
         # Trucks with their assignments
         trucks = conn.execute("SELECT * FROM trucks ORDER BY name").fetchall()
@@ -55,6 +56,12 @@ def tv_display(request: Request, shift_id: int):
         for a in truck_assignments:
             assignments_by_truck.setdefault(a["truck_id"], []).append(a)
 
+        # Enabled status per truck (absent = enabled)
+        st_rows = conn.execute(
+            "SELECT truck_id, enabled FROM shift_trucks WHERE shift_id = ?", (shift_id,)
+        ).fetchall()
+        truck_enabled = {r["truck_id"]: bool(r["enabled"]) for r in st_rows}
+
         return templates.TemplateResponse(
             "tv.html",
             {
@@ -65,6 +72,7 @@ def tv_display(request: Request, shift_id: int):
                 "no_room_beds": no_room_beds,
                 "trucks": trucks,
                 "assignments_by_truck": assignments_by_truck,
+                "truck_enabled": truck_enabled,
             },
         )
 

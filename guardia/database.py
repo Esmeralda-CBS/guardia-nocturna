@@ -77,6 +77,20 @@ def init_db():
                 truck_id     INTEGER NOT NULL REFERENCES trucks(id),
                 role         TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS roles (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                name       TEXT NOT NULL UNIQUE,
+                sort_order INTEGER NOT NULL DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS shift_trucks (
+                id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                shift_id INTEGER NOT NULL REFERENCES shifts(id) ON DELETE CASCADE,
+                truck_id INTEGER NOT NULL REFERENCES trucks(id) ON DELETE CASCADE,
+                enabled  INTEGER NOT NULL DEFAULT 1,
+                UNIQUE(shift_id, truck_id)
+            );
         """)
         seed_defaults(conn)
         migrate(conn)
@@ -88,11 +102,18 @@ def migrate(conn: sqlite3.Connection):
     for sql in [
         "ALTER TABLE beds ADD COLUMN room TEXT",
         "ALTER TABLE trucks ADD COLUMN color TEXT DEFAULT '#93c5fd'",
+        "ALTER TABLE volunteers ADD COLUMN permanent INTEGER NOT NULL DEFAULT 0",
     ]:
         try:
             conn.execute(sql)
         except sqlite3.OperationalError:
             pass  # Column already exists
+
+    # Seed roles from DEFAULT_ROLES if table is empty
+    role_count = conn.execute("SELECT COUNT(*) FROM roles").fetchone()[0]
+    if role_count == 0:
+        for i, r in enumerate(DEFAULT_ROLES):
+            conn.execute("INSERT OR IGNORE INTO roles (name, sort_order) VALUES (?, ?)", (r, i))
 
     # Remove UNIQUE(shift_id, volunteer_id) from truck_assignments if present
     schema = conn.execute(

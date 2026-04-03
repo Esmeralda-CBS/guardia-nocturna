@@ -1,6 +1,8 @@
+from typing import List
+
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import RedirectResponse
-from guardia.database import get_db, DEFAULT_ROLES
+from guardia.database import get_db
 from guardia.templates_config import templates
 
 router = APIRouter()
@@ -20,9 +22,11 @@ def bed_assignment_screen(request: Request, shift_id: int):
             return RedirectResponse("/turnos", status_code=302)
 
         active = get_active_shift(conn)
-        volunteers = conn.execute(
+        all_volunteers = conn.execute(
             "SELECT * FROM volunteers WHERE active = 1 ORDER BY name"
         ).fetchall()
+        permanent_volunteers = [v for v in all_volunteers if v["permanent"]]
+        other_volunteers = [v for v in all_volunteers if not v["permanent"]]
         beds = conn.execute(
             "SELECT * FROM beds ORDER BY CAST(number AS INTEGER), number"
         ).fetchall()
@@ -47,7 +51,8 @@ def bed_assignment_screen(request: Request, shift_id: int):
                 "request": request,
                 "shift": shift,
                 "active_shift": active,
-                "volunteers": volunteers,
+                "permanent_volunteers": permanent_volunteers,
+                "other_volunteers": other_volunteers,
                 "beds": beds,
                 "bed_to_vol": bed_to_vol,
                 "vol_to_bed": vol_to_bed,
@@ -106,6 +111,10 @@ def truck_assignment_screen(request: Request, shift_id: int):
         volunteers = conn.execute(
             "SELECT * FROM volunteers WHERE active = 1 ORDER BY name"
         ).fetchall()
+        roles = [
+            r["name"]
+            for r in conn.execute("SELECT name FROM roles ORDER BY sort_order, name").fetchall()
+        ]
 
         # Assignments per truck
         truck_assignments = conn.execute("""
@@ -121,6 +130,12 @@ def truck_assignment_screen(request: Request, shift_id: int):
         for a in truck_assignments:
             assignments_by_truck.setdefault(a["truck_id"], []).append(a)
 
+        # Enabled status per truck for this shift (absent row = enabled)
+        st_rows = conn.execute(
+            "SELECT truck_id, enabled FROM shift_trucks WHERE shift_id = ?", (shift_id,)
+        ).fetchall()
+        truck_enabled = {r["truck_id"]: bool(r["enabled"]) for r in st_rows}
+
         return templates.TemplateResponse(
             "assignments/trucks.html",
             {
@@ -130,7 +145,8 @@ def truck_assignment_screen(request: Request, shift_id: int):
                 "trucks": trucks,
                 "volunteers": volunteers,
                 "assignments_by_truck": assignments_by_truck,
-                "roles": DEFAULT_ROLES,
+                "roles": roles,
+                "truck_enabled": truck_enabled,
             },
         )
 
@@ -140,12 +156,13 @@ def assign_truck(
     shift_id: int,
     volunteer_id: int = Form(...),
     truck_id: int = Form(...),
-    role: str = Form(...),
+    roles: List[str] = Form(default=[]),
 ):
+    role_str = ",".join(roles)
     with get_db() as conn:
         conn.execute(
             "INSERT INTO truck_assignments (shift_id, volunteer_id, truck_id, role) VALUES (?, ?, ?, ?)",
-            (shift_id, volunteer_id, truck_id, role),
+            (shift_id, volunteer_id, truck_id, role_str),
         )
     return RedirectResponse(f"/turnos/{shift_id}/camiones", status_code=303)
 
@@ -163,15 +180,37 @@ def remove_truck_assignment(
     return RedirectResponse(f"/turnos/{shift_id}/camiones", status_code=303)
 
 
+@router.post("/turnos/{shift_id}/camiones/{truck_id}/toggle")
+def toggle_truck(shift_id: int, truck_id: int):
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT enabled FROM shift_trucks WHERE shift_id = ? AND truck_id = ?",
+            (shift_id, truck_id),
+        ).fetchone()
+        if row is None:
+            # Default is enabled; first toggle → disable
+            conn.execute(
+                "INSERT INTO shift_trucks (shift_id, truck_id, enabled) VALUES (?, ?, 0)",
+                (shift_id, truck_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE shift_trucks SET enabled = ? WHERE shift_id = ? AND truck_id = ?",
+                (0 if row["enabled"] else 1, shift_id, truck_id),
+            )
+    return RedirectResponse(f"/turnos/{shift_id}/camiones", status_code=303)
+
+
 @router.post("/turnos/{shift_id}/camiones/rol")
 def update_truck_role(
     shift_id: int,
     assignment_id: int = Form(...),
-    role: str = Form(...),
+    roles: List[str] = Form(default=[]),
 ):
+    role_str = ",".join(roles)
     with get_db() as conn:
         conn.execute(
             "UPDATE truck_assignments SET role = ? WHERE id = ? AND shift_id = ?",
-            (role, assignment_id, shift_id),
+            (role_str, assignment_id, shift_id),
         )
     return RedirectResponse(f"/turnos/{shift_id}/camiones", status_code=303)

@@ -2,7 +2,7 @@
 {% block title %}Asignación de Camas — Guardia Nocturna{% endblock %}
 {% block content %}
 
-<div x-data="{ selected: null, selectedName: '' }">
+<div x-data="{ selected: null, selectedName: '', search: '' }">
 
   <!-- Header -->
   <div class="flex items-center justify-between mb-4">
@@ -29,14 +29,58 @@
 
     <!-- Volunteers column -->
     <div>
-      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-        Voluntarios ({{ volunteers | length }})
+
+      <!-- Permanentes -->
+      {% if permanent_volunteers %}
+      <h2 class="text-sm font-semibold text-amber-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+        <span class="inline-block w-2 h-2 rounded-full bg-amber-400"></span>
+        Permanentes ({{ permanent_volunteers | length }})
       </h2>
-      <div class="space-y-2">
-        {% for v in volunteers %}
+      <div class="space-y-2 mb-4">
+        {% for v in permanent_volunteers %}
+        <div class="bg-amber-50 rounded-xl shadow-sm border-2 transition cursor-pointer
+                    {% if vol_to_bed.get(v['id']) %}border-green-400{% else %}border-amber-200{% endif %}"
+             :class="selected === {{ v['id'] }} ? 'border-indigo-500 ring-2 ring-indigo-300' : ''"
+             @click="selected = {{ v['id'] }}; selectedName = '{{ v['name'] | replace("'", "\\'") }}'">
+          <div class="px-4 py-3 flex items-center justify-between">
+            <span class="font-medium text-gray-800">{{ v['name'] }}</span>
+            {% if vol_to_bed.get(v['id']) %}
+            <span class="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full font-semibold">
+              Cama {{ vol_to_bed[v['id']] }}
+            </span>
+            {% else %}
+            <span class="text-xs text-amber-500">Sin cama</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Otros voluntarios -->
+      {% if other_volunteers %}
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-2">
+        Otros voluntarios ({{ other_volunteers | length }})
+      </h2>
+
+      <!-- Search box -->
+      <div class="relative mb-2">
+        <input type="text" x-model="search" placeholder="Buscar voluntario…"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 pl-8 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+        <svg class="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-4.35-4.35M16.65 16.65A7 7 0 1116.65 2.65a7 7 0 010 14z"/>
+        </svg>
+        <button x-show="search !== ''" @click="search = ''"
+                class="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
+      </div>
+
+      <div class="space-y-2 max-h-[420px] overflow-y-auto pr-0.5">
+        {% for v in other_volunteers %}
         <div class="bg-white rounded-xl shadow-sm border-2 transition cursor-pointer
                     {% if vol_to_bed.get(v['id']) %}border-green-400{% else %}border-transparent{% endif %}"
              :class="selected === {{ v['id'] }} ? 'border-indigo-500 ring-2 ring-indigo-300' : ''"
+             x-show="search === '' || '{{ v['name'] | lower | replace("'", "\\'") }}'.includes(search.toLowerCase())"
              @click="selected = {{ v['id'] }}; selectedName = '{{ v['name'] | replace("'", "\\'") }}'">
           <div class="px-4 py-3 flex items-center justify-between">
             <span class="font-medium text-gray-800">{{ v['name'] }}</span>
@@ -49,10 +93,14 @@
             {% endif %}
           </div>
         </div>
-        {% else %}
-        <p class="text-gray-400 text-sm">No hay voluntarios activos. <a href="/admin/voluntarios" class="text-indigo-600 underline">Agregar voluntarios</a></p>
         {% endfor %}
       </div>
+      {% endif %}
+
+      {% if not permanent_volunteers and not other_volunteers %}
+      <p class="text-gray-400 text-sm">No hay voluntarios activos. <a href="/admin/voluntarios" class="text-indigo-600 underline">Agregar voluntarios</a></p>
+      {% endif %}
+
     </div>
 
     <!-- Beds column -->

@@ -10,159 +10,166 @@
       margin: 0; padding: 0;
       width: 100vw; height: 100vh;
       overflow: hidden;
-      background: #111827;
+      background: #0f172a;
       font-family: 'Helvetica Neue', Arial, sans-serif;
-    }
-    .bed-card {
-      transition: background 0.3s;
     }
   </style>
 </head>
 <body class="text-white flex flex-col" style="height:100vh;">
 
   <!-- Top bar -->
-  <div class="flex items-center justify-between px-6 py-3 bg-gray-900 border-b border-gray-700 shrink-0">
-    <div class="flex items-center gap-3">
-      <span class="text-2xl">🚒</span>
-      <span class="font-bold text-xl tracking-wide">Guardia Nocturna</span>
+  <div class="flex items-center px-6 py-2 bg-slate-900 border-b border-slate-700 shrink-0">
+    <div class="flex items-center gap-3 flex-1">
+      <span class="text-xl">🚒</span>
+      <span class="font-bold text-lg tracking-wide">Guardia Nocturna "Fernando Waymann"</span>
     </div>
-    <div class="text-gray-300 text-base font-medium">{{ shift['date'] | es_date }}</div>
-    <div class="flex items-center gap-4 text-sm text-gray-400">
+    <div class="text-slate-300 text-base font-medium text-center flex-1">{{ shift['date'] | es_date }}</div>
+    <div class="flex items-center justify-end gap-4 text-sm text-slate-400 flex-1">
       <a href="/turnos/{{ shift['id'] }}" class="hover:text-white transition">← Panel</a>
       <span id="clock" class="font-mono text-lg text-white"></span>
     </div>
   </div>
 
-  <!-- Main layout: beds left, trucks right -->
-  <div class="flex flex-1 min-h-0 gap-0">
+  <!-- Main layout -->
+  <div class="flex flex-1 min-h-0 gap-4 p-4">
 
-    <!-- LEFT: Dormitorio -->
-    <div class="flex flex-col w-1/2 border-r border-gray-700 min-h-0">
-      <div class="px-5 py-2 bg-gray-800 border-b border-gray-700 shrink-0">
-        <h2 class="text-xs font-bold uppercase tracking-widest text-gray-400">Dormitorio</h2>
-      </div>
-      <div class="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+    <!-- LEFT: Dormitorio (floor plan) -->
+    <div class="flex flex-col w-1/2 min-h-0 gap-3">
 
-        {% if sorted_rooms %}
+      {% if sorted_rooms %}
+      <!-- Building outline -->
+      <div class="flex-1 border-2 border-slate-500 rounded-3xl overflow-hidden flex flex-col min-h-0">
+
         {% for room_name in sorted_rooms %}
         {% set room_beds = rooms[room_name] %}
-        <!-- Room card -->
-        <div class="rounded-2xl border border-gray-600 bg-gray-800 overflow-hidden">
-          <!-- Room label -->
-          <div class="px-4 py-1.5 bg-gray-700 flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-widest text-gray-300">
-              Pieza {{ room_name }}
-            </span>
-            <span class="text-xs text-gray-500">
-              {{ room_beds | selectattr('volunteer_name') | list | length }}/{{ room_beds | length }} ocupadas
-            </span>
-          </div>
-          <!-- Beds grid inside room -->
-          <div class="p-3 grid gap-2"
-               style="grid-template-columns: repeat({{ [room_beds|length, 2]|min }}, 1fr);">
+        {% set is_last = loop.last %}
+        {% set two_cols = room_beds|length >= 3 %}
+
+        <div class="flex flex-1 min-h-0 {% if not is_last %}border-b border-slate-600{% endif %}">
+
+          <!-- Beds area -->
+          <div class="flex-1 p-3 grid gap-2 content-center
+                      {{ 'grid-cols-2' if two_cols else 'grid-cols-1' }}">
             {% for bed in room_beds %}
-            <div class="bed-card rounded-xl px-3 py-2 min-h-[52px] flex flex-col justify-center
-                        {% if bed['volunteer_name'] %}bg-indigo-600 border border-indigo-400{% else %}bg-gray-700 border border-gray-600{% endif %}">
-              <div class="text-xs text-gray-300 mb-0.5">Cama {{ bed['bed_number'] }}</div>
+            <div class="rounded-xl border flex flex-col justify-center px-3 py-2 min-h-[3.5rem]
+                        {{ 'bg-indigo-700 border-indigo-500' if bed['volunteer_name'] else 'bg-slate-700 border-slate-600' }}">
+              <div class="text-xs text-slate-400 leading-none mb-1">Cama {{ bed['bed_number'] }}</div>
               {% if bed['volunteer_name'] %}
-              <div class="font-semibold text-white text-sm leading-tight truncate">{{ bed['volunteer_name'] }}</div>
+              <div class="font-bold text-white leading-tight truncate text-sm">{{ bed['volunteer_name'] }}</div>
               {% else %}
-              <div class="text-gray-500 text-xs italic">Libre</div>
+              <div class="text-slate-500 text-xs italic">Libre</div>
               {% endif %}
             </div>
             {% endfor %}
           </div>
+
+          <!-- Room label on the right -->
+          <div class="flex items-center justify-center w-12 shrink-0 border-l border-slate-600 bg-slate-800">
+            <span class="font-black text-slate-300 text-xl tracking-tight"
+                  style="writing-mode: vertical-rl; transform: rotate(180deg);">
+              {{ room_name }}
+            </span>
+          </div>
+
         </div>
         {% endfor %}
 
-        {% elif no_room_beds %}
-        <!-- Fallback: no rooms configured, show flat grid -->
-        <div class="rounded-2xl border border-gray-600 bg-gray-800 p-3">
-          <p class="text-xs text-gray-500 mb-2 italic">
-            Configura piezas en Admin → Camas para ver el plano del dormitorio.
-          </p>
-          <div class="grid grid-cols-2 gap-2">
-            {% for bed in no_room_beds %}
-            <div class="bed-card rounded-xl px-3 py-2 min-h-[52px] flex flex-col justify-center
-                        {% if bed['volunteer_name'] %}bg-indigo-600 border border-indigo-400{% else %}bg-gray-700 border border-gray-600{% endif %}">
-              <div class="text-xs text-gray-300 mb-0.5">Cama {{ bed['bed_number'] }}</div>
-              {% if bed['volunteer_name'] %}
-              <div class="font-semibold text-white text-sm leading-tight truncate">{{ bed['volunteer_name'] }}</div>
-              {% else %}
-              <div class="text-gray-500 text-xs italic">Libre</div>
-              {% endif %}
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-
-        {% else %}
-        <div class="flex items-center justify-center h-full text-gray-500 text-sm">
-          Sin camas asignadas
-        </div>
-        {% endif %}
-
       </div>
+      {% endif %}
+
+      <!-- Outside beds (Favela, etc.) -->
+      {% if no_room_beds %}
+      <div class="shrink-0 border-2 border-dashed border-slate-500 rounded-3xl overflow-hidden">
+        <div class="grid gap-2 p-3
+                    {{ 'grid-cols-2' if no_room_beds|length >= 3 else 'grid-cols-1' }}">
+          {% for bed in no_room_beds %}
+          <div class="rounded-xl border flex flex-col justify-center px-3 py-2 min-h-[3.5rem]
+                      {{ 'bg-amber-900/40 border-amber-600' if bed['volunteer_name'] else 'bg-slate-700 border-slate-600' }}">
+            <div class="text-xs text-slate-400 leading-none mb-1">{{ bed['bed_number'] }}</div>
+            {% if bed['volunteer_name'] %}
+            <div class="font-bold text-amber-200 leading-tight truncate text-sm">{{ bed['volunteer_name'] }}</div>
+            {% else %}
+            <div class="text-slate-500 text-xs italic">Libre</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
     </div>
 
     <!-- RIGHT: Camiones -->
-    <div class="flex flex-col w-1/2 min-h-0">
-      <div class="px-5 py-2 bg-gray-800 border-b border-gray-700 shrink-0">
-        <h2 class="text-xs font-bold uppercase tracking-widest text-gray-400">Camiones en servicio</h2>
-      </div>
-      <div class="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+    <div class="flex flex-col w-1/2 min-h-0 gap-3">
 
-        {% if trucks %}
-        {% for truck in trucks %}
-        {% set truck_assigns = assignments_by_truck.get(truck['id'], []) %}
-        {% set truck_color = truck['color'] if truck['color'] else '#93c5fd' %}
+      {% if trucks %}
+      {% for truck in trucks %}
+      {% set truck_assigns = assignments_by_truck.get(truck['id'], []) %}
+      {% set is_enabled = truck_enabled.get(truck['id'], true) %}
+      {% set c = truck['color'] if truck['color'] else '#93c5fd' %}
 
-        <div class="rounded-2xl overflow-hidden border-2" style="border-color: {{ truck_color }};">
-          <!-- Truck header -->
-          <div class="px-5 py-3 flex items-center justify-between" style="background-color: {{ truck_color }};">
-            <div class="flex items-center gap-2">
-              <span class="text-xl">🚒</span>
-              <span class="font-bold text-gray-900 text-lg">{{ truck['name'] }}</span>
-              {% if truck['type'] %}
-              <span class="text-xs text-gray-700 font-medium">({{ truck['type'] }})</span>
-              {% endif %}
-            </div>
-            <span class="text-sm font-semibold text-gray-800">{{ truck_assigns | length }} voluntario(s)</span>
+      {% if is_enabled %}
+      <div class="flex-1 min-h-0 rounded-2xl overflow-hidden border-2 flex flex-col"
+           style="border-color: {{ c }};">
+
+        <!-- Truck header -->
+        <div class="flex items-center justify-between px-5 py-2 shrink-0"
+             style="background-color: {{ c }};">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🚒</span>
+            <span class="font-black text-gray-900 text-xl tracking-tight">{{ truck['name'].upper() }}</span>
           </div>
+          <span class="text-sm font-bold text-gray-800">{{ truck_assigns | length }} vol.</span>
+        </div>
 
-          <!-- Volunteers -->
+        <!-- Volunteers list -->
+        <div class="flex-1 bg-slate-800/80 overflow-y-auto divide-y divide-slate-700/60">
           {% if truck_assigns %}
-          <div class="bg-gray-800 divide-y divide-gray-700">
-            {% for a in truck_assigns %}
-            <div class="flex items-center px-5 py-2.5 gap-3">
-              <div class="w-2 h-2 rounded-full shrink-0" style="background-color: {{ truck_color }};"></div>
-              <span class="font-semibold text-white flex-1">{{ a['volunteer_name'] }}</span>
-              <span class="text-sm text-gray-400 italic">{{ a['role'] }}</span>
-            </div>
-            {% endfor %}
+          {% for a in truck_assigns %}
+          <div class="flex items-center px-5 py-2 gap-3">
+            <div class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: {{ c }};"></div>
+            <span class="font-semibold text-white flex-1 text-base">{{ a['volunteer_name'] }}</span>
+            <span class="text-slate-400 italic text-sm">{{ a['role'].replace(',', ' · ') }}</span>
           </div>
+          {% endfor %}
           {% else %}
-          <div class="bg-gray-800 px-5 py-3 text-gray-500 text-sm italic">
-            Sin personal asignado
+          <div class="flex items-center justify-center h-full text-slate-300 text-sm font-semibold">
+            Todo el personal disponible
           </div>
           {% endif %}
         </div>
 
-        {% endfor %}
+      </div>
+      {% else %}
+      <!-- Disabled truck -->
+      <div class="flex-1 min-h-0 rounded-2xl overflow-hidden border-2 border-slate-600 flex flex-col opacity-50">
 
-        {% else %}
-        <div class="flex items-center justify-center h-full text-gray-500 text-sm">
-          Sin camiones configurados
+        <!-- Header gray -->
+        <div class="flex items-center justify-between px-5 py-2 shrink-0 bg-slate-600">
+          <div class="flex items-center gap-2">
+            <span class="text-lg grayscale">🚒</span>
+            <span class="font-black text-slate-300 text-xl tracking-tight">{{ truck['name'] }}</span>
+          </div>
         </div>
-        {% endif %}
+
+        <!-- Out of service message -->
+        <div class="flex-1 bg-slate-800/60 flex items-center justify-center">
+          <span class="text-slate-400 text-base font-semibold italic tracking-wide">Fuera de servicio</span>
+        </div>
 
       </div>
-    </div>
+      {% endif %}
+      {% endfor %}
+      {% else %}
+      <div class="flex items-center justify-center h-full text-slate-500 text-sm">
+        Sin camiones configurados
+      </div>
+      {% endif %}
 
+    </div>
   </div>
 
   <script>
-    // Clock
     function updateClock() {
       const now = new Date();
       const h = String(now.getHours()).padStart(2, '0');
@@ -172,8 +179,6 @@
     }
     updateClock();
     setInterval(updateClock, 1000);
-
-    // Auto-refresh every 30 seconds
     setTimeout(() => location.reload(), 30000);
   </script>
 

@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from guardia.database import init_db
-from guardia.routers import shifts, volunteers, beds, trucks, assignments, export, tv
+from guardia.routers import shifts, volunteers, beds, trucks, assignments, export, tv, roles
 
 app = FastAPI(title="Guardia Nocturna")
 
@@ -20,6 +20,7 @@ app.include_router(trucks.router, prefix="/admin")
 app.include_router(assignments.router)
 app.include_router(export.router)
 app.include_router(tv.router)
+app.include_router(roles.router, prefix="/admin")
 
 
 def get_local_ip() -> str:

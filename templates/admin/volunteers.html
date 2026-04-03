@@ -27,8 +27,23 @@
     <div class="flex items-center px-4 py-3 gap-3 {% if not v['active'] %}opacity-50{% endif %}">
       <div class="w-2 h-2 rounded-full {% if v['active'] %}bg-green-500{% else %}bg-gray-300{% endif %} shrink-0"></div>
       <span class="flex-1 font-medium text-gray-800">{{ v['name'] }}</span>
+
+      {% if v['permanent'] %}
+      <span class="text-xs bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-full">Permanente</span>
+      {% endif %}
+
       <span class="text-xs text-gray-400">{% if v['active'] %}Activo{% else %}Inactivo{% endif %}</span>
 
+      <!-- Toggle permanente -->
+      <form method="POST" action="/admin/voluntarios/{{ v['id'] }}/toggle-permanente">
+        <button type="submit"
+                class="text-xs px-3 py-1.5 rounded-lg border transition
+                       {% if v['permanent'] %}border-amber-400 text-amber-700 hover:bg-amber-50{% else %}border-gray-300 text-gray-500 hover:bg-gray-50{% endif %}">
+          {% if v['permanent'] %}Quitar permanente{% else %}Permanente{% endif %}
+        </button>
+      </form>
+
+      <!-- Toggle activo -->
       <form method="POST" action="/admin/voluntarios/{{ v['id'] }}/toggle">
         <button type="submit"
                 class="text-xs px-3 py-1.5 rounded-lg border {% if v['active'] %}border-gray-300 text-gray-600 hover:bg-gray-100{% else %}border-green-400 text-green-700 hover:bg-green-50{% endif %} transition">

@@ -42,6 +42,16 @@ def toggle_volunteer(vol_id: int):
     return RedirectResponse("/admin/voluntarios", status_code=303)
 
 
+@router.post("/voluntarios/{vol_id}/toggle-permanente")
+def toggle_permanent(vol_id: int):
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE volunteers SET permanent = CASE WHEN permanent = 1 THEN 0 ELSE 1 END WHERE id = ?",
+            (vol_id,),
+        )
+    return RedirectResponse("/admin/voluntarios", status_code=303)
+
+
 @router.post("/voluntarios/{vol_id}/eliminar")
 def delete_volunteer(vol_id: int):
     with get_db() as conn:
