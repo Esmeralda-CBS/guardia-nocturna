@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Voluntarios — Guardia Nocturna{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-800">Voluntarios</h1>
+</div>
+
+<!-- Add form -->
+<div class="bg-white rounded-xl shadow p-5 mb-6">
+  <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-3">Agregar voluntario</h2>
+  <form method="POST" action="/admin/voluntarios/nuevo" class="flex gap-2">
+    <input type="text" name="name" required placeholder="Nombre completo…"
+           class="flex-1 border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-red-500">
+    <button type="submit"
+            class="bg-red-700 text-white px-5 py-3 rounded-lg font-semibold hover:bg-red-800 active:scale-95 transition">
+      + Agregar
+    </button>
+  </form>
+</div>
+
+<!-- List -->
+{% if volunteers %}
+<div class="bg-white rounded-xl shadow overflow-hidden">
+  <div class="divide-y divide-gray-100">
+    {% for v in volunteers %}
+    <div class="flex items-center px-4 py-3 gap-3 {% if not v['active'] %}opacity-50{% endif %}">
+      <div class="w-2 h-2 rounded-full {% if v['active'] %}bg-green-500{% else %}bg-gray-300{% endif %} shrink-0"></div>
+      <span class="flex-1 font-medium text-gray-800">{{ v['name'] }}</span>
+      <span class="text-xs text-gray-400">{% if v['active'] %}Activo{% else %}Inactivo{% endif %}</span>
+
+      <form method="POST" action="/admin/voluntarios/{{ v['id'] }}/toggle">
+        <button type="submit"
+                class="text-xs px-3 py-1.5 rounded-lg border {% if v['active'] %}border-gray-300 text-gray-600 hover:bg-gray-100{% else %}border-green-400 text-green-700 hover:bg-green-50{% endif %} transition">
+          {% if v['active'] %}Desactivar{% else %}Activar{% endif %}
+        </button>
+      </form>
+
+      <form method="POST" action="/admin/voluntarios/{{ v['id'] }}/eliminar"
+            onsubmit="return confirm('¿Eliminar a {{ v['name'] }}?')">
+        <button type="submit" class="text-red-400 hover:text-red-700 text-lg px-1 leading-none" title="Eliminar">✕</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<div class="bg-white rounded-xl shadow p-8 text-center text-gray-500">
+  No hay voluntarios. Agrega el primero arriba.
+</div>
+{% endif %}
+
+{% endblock %}

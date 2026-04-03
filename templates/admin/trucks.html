@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Camiones — Guardia Nocturna{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-800">Camiones</h1>
+</div>
+
+<!-- Add form -->
+<div class="bg-white rounded-xl shadow p-5 mb-6">
+  <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-3">Agregar camión</h2>
+  <form method="POST" action="/admin/camiones/nuevo" class="space-y-3">
+    <div class="flex gap-2 flex-wrap">
+      <input type="text" name="name" required placeholder="Nombre (ej: B2, Bx2, Z2…)"
+             class="flex-1 min-w-[160px] border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-red-500">
+      <input type="text" name="type" placeholder="Tipo (ej: Autobomba, Escala…)"
+             class="flex-1 min-w-[140px] border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-red-500">
+    </div>
+    <div class="flex items-center gap-3 flex-wrap">
+      <span class="text-sm text-gray-600">Color en pantalla TV:</span>
+      <div class="flex gap-2 flex-wrap">
+        {% for hex, label in truck_colors %}
+        <label class="cursor-pointer group" title="{{ label }}">
+          <input type="radio" name="color" value="{{ hex }}" class="sr-only"
+                 {% if loop.first %}checked{% endif %}>
+          <div class="w-8 h-8 rounded-full border-2 border-transparent group-has-[:checked]:border-gray-800 group-has-[:checked]:scale-110 transition"
+               style="background-color: {{ hex }};"></div>
+        </label>
+        {% endfor %}
+      </div>
+      <button type="submit"
+              class="bg-red-700 text-white px-5 py-3 rounded-lg font-semibold hover:bg-red-800 active:scale-95 transition">
+        + Agregar
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- List -->
+{% if trucks %}
+<div class="bg-white rounded-xl shadow overflow-hidden">
+  <div class="divide-y divide-gray-100">
+    {% for truck in trucks %}
+    <div class="flex items-center px-4 py-3 gap-3">
+      <!-- Color dot + swatch -->
+      <div class="w-5 h-5 rounded-full border border-gray-300 shrink-0"
+           style="background-color: {{ truck['color'] or '#93c5fd' }};"></div>
+
+      <div class="flex-1">
+        <span class="font-semibold text-gray-800">{{ truck['name'] }}</span>
+        {% if truck['type'] %}
+        <span class="ml-2 text-xs text-gray-400">{{ truck['type'] }}</span>
+        {% endif %}
+      </div>
+
+      <!-- Color picker inline -->
+      <form method="POST" action="/admin/camiones/{{ truck['id'] }}/color" class="flex items-center gap-1">
+        <div class="flex gap-1">
+          {% for hex, label in truck_colors %}
+          <label class="cursor-pointer group" title="{{ label }}">
+            <input type="radio" name="color" value="{{ hex }}" class="sr-only"
+                   {% if truck['color'] == hex %}checked{% endif %}>
+            <div class="w-5 h-5 rounded-full border border-transparent group-has-[:checked]:border-gray-600 transition cursor-pointer hover:scale-110"
+                 style="background-color: {{ hex }};"></div>
+          </label>
+          {% endfor %}
+        </div>
+        <button type="submit" class="text-xs text-indigo-600 hover:text-indigo-800 ml-1 px-1" title="Guardar color">✓</button>
+      </form>
+
+      <form method="POST" action="/admin/camiones/{{ truck['id'] }}/eliminar"
+            onsubmit="return confirm('¿Eliminar {{ truck['name'] }}?')">
+        <button type="submit" class="text-red-400 hover:text-red-700 text-lg px-1 leading-none" title="Eliminar">✕</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<div class="bg-white rounded-xl shadow p-8 text-center text-gray-500">
+  No hay camiones configurados.
+</div>
+{% endif %}
+
+{% endblock %}

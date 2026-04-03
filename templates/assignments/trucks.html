@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Asignación de Camiones — Guardia Nocturna{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-4">
+  <div>
+    <h1 class="text-xl font-bold text-gray-800">Asignación de camiones</h1>
+    <p class="text-sm text-gray-500">{{ shift['date'] | es_date }}</p>
+  </div>
+  <a href="/turnos/{{ shift['id'] }}"
+     class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition">
+    Ver resumen →
+  </a>
+</div>
+
+{% if not trucks %}
+<div class="bg-white rounded-xl shadow p-6 text-center text-gray-500">
+  No hay camiones configurados.
+  <a href="/admin/camiones" class="text-indigo-600 underline ml-1">Agregar camiones</a>
+</div>
+{% else %}
+
+<div class="space-y-5">
+  {% for truck in trucks %}
+  {% set truck_assigns = assignments_by_truck.get(truck['id'], []) %}
+
+  <div class="bg-white rounded-xl shadow p-5">
+    <!-- Truck header -->
+    <div class="flex items-center gap-2 mb-4">
+      <span class="text-2xl">🚒</span>
+      <div>
+        <h2 class="font-bold text-gray-800 text-lg">{{ truck['name'] }}</h2>
+        {% if truck['type'] %}<p class="text-xs text-gray-400">{{ truck['type'] }}</p>{% endif %}
+      </div>
+      <span class="ml-auto text-sm text-gray-500">{{ truck_assigns | length }} voluntario(s)</span>
+    </div>
+
+    <!-- Current assignments -->
+    {% if truck_assigns %}
+    <div class="space-y-2 mb-4">
+      {% for a in truck_assigns %}
+      <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+        <span class="font-medium text-gray-800 text-sm flex-1">{{ a['volunteer_name'] }}</span>
+
+        <!-- Role update form -->
+        <form method="POST" action="/turnos/{{ shift['id'] }}/camiones/rol" class="flex items-center gap-1">
+          <input type="hidden" name="assignment_id" value="{{ a['id'] }}">
+          <select name="role" onchange="this.form.submit()"
+                  class="text-sm border border-gray-200 rounded px-2 py-1 text-gray-600 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
+            {% for r in roles %}
+            <option value="{{ r }}" {% if r == a['role'] %}selected{% endif %}>{{ r }}</option>
+            {% endfor %}
+            <option value="{{ a['role'] }}" {% if a['role'] not in roles %}selected{% endif %}>{{ a['role'] }}</option>
+          </select>
+        </form>
+
+        <!-- Remove button -->
+        <form method="POST" action="/turnos/{{ shift['id'] }}/camiones/quitar">
+          <input type="hidden" name="assignment_id" value="{{ a['id'] }}">
+          <button type="submit"
+                  class="text-red-400 hover:text-red-700 text-lg leading-none p-1"
+                  onclick="return confirm('¿Quitar a {{ a['volunteer_name'] }} del camión?')"
+                  title="Quitar">✕</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-400 text-sm mb-4">Sin voluntarios asignados.</p>
+    {% endif %}
+
+    <!-- Add volunteer form -->
+    {% if volunteers %}
+    <form method="POST" action="/turnos/{{ shift['id'] }}/camiones/asignar"
+          class="flex flex-wrap gap-2 items-end border-t border-gray-100 pt-4">
+      <input type="hidden" name="truck_id" value="{{ truck['id'] }}">
+
+      <div class="flex-1 min-w-[140px]">
+        <label class="text-xs text-gray-500 block mb-1">Voluntario</label>
+        <select name="volunteer_id" required
+                class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          <option value="">Seleccionar…</option>
+          {% for v in volunteers %}
+          <option value="{{ v['id'] }}">{{ v['name'] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="flex-1 min-w-[140px]">
+        <label class="text-xs text-gray-500 block mb-1">Función</label>
+        <select name="role" required
+                class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          {% for r in roles %}
+          <option value="{{ r }}">{{ r }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="submit"
+              class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 active:scale-95 transition">
+        + Agregar
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% endfor %}
+</div>
+
+{% endif %}
+
+<!-- Bottom nav -->
+<div class="mt-8 flex justify-between items-center">
+  <a href="/turnos/{{ shift['id'] }}/camas" class="text-sm text-gray-500 hover:text-gray-700">← Volver a camas</a>
+  <a href="/turnos/{{ shift['id'] }}"
+     class="bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition">
+    Ver resumen del turno →
+  </a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Turnos — Guardia Nocturna{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-800">Turnos</h1>
+  <a href="/turnos/nuevo"
+     class="bg-red-700 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-800 active:scale-95 transition">
+    + Nueva guardia
+  </a>
+</div>
+
+{% if not shifts %}
+<div class="bg-white rounded-xl shadow p-8 text-center text-gray-500">
+  <p class="text-4xl mb-3">🌙</p>
+  <p class="text-lg font-medium">No hay turnos registrados.</p>
+  <a href="/turnos/nuevo" class="mt-4 inline-block bg-red-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-800 transition">
+    Iniciar primera guardia
+  </a>
+</div>
+{% else %}
+<div class="space-y-3">
+  {% for s in shifts %}
+  <div class="bg-white rounded-xl shadow p-4 flex items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2">
+        {% if s['is_active'] %}
+        <span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+        <span class="text-xs font-semibold text-green-600 uppercase">Activa</span>
+        {% else %}
+        <span class="inline-block w-2 h-2 rounded-full bg-gray-300"></span>
+        <span class="text-xs text-gray-400 uppercase">Archivada</span>
+        {% endif %}
+      </div>
+      <p class="font-semibold text-gray-800 mt-1">{{ s['date'] | es_date }}</p>
+      {% if s['notes'] %}
+      <p class="text-sm text-gray-500 mt-0.5">{{ s['notes'] }}</p>
+      {% endif %}
+    </div>
+    <a href="/turnos/{{ s['id'] }}"
+       class="shrink-0 text-sm bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition font-medium">
+      Ver →
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

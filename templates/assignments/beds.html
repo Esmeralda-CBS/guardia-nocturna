@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Asignación de Camas — Guardia Nocturna{% endblock %}
+{% block content %}
+
+<div x-data="{ selected: null, selectedName: '' }">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Asignación de camas</h1>
+      <p class="text-sm text-gray-500">{{ shift['date'] | es_date }}</p>
+    </div>
+    <a href="/turnos/{{ shift['id'] }}/camiones"
+       class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
+      Siguiente: Camiones →
+    </a>
+  </div>
+
+  <!-- Selected volunteer sticky banner -->
+  <div x-show="selected !== null" x-cloak
+       class="sticky top-14 z-40 bg-indigo-600 text-white px-4 py-3 rounded-xl mb-4 flex items-center justify-between shadow-lg">
+    <span>Asignando a: <strong x-text="selectedName"></strong></span>
+    <button @click="selected = null; selectedName = ''" class="text-indigo-200 hover:text-white text-sm">
+      ✕ Cancelar
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Volunteers column -->
+    <div>
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+        Voluntarios ({{ volunteers | length }})
+      </h2>
+      <div class="space-y-2">
+        {% for v in volunteers %}
+        <div class="bg-white rounded-xl shadow-sm border-2 transition cursor-pointer
+                    {% if vol_to_bed.get(v['id']) %}border-green-400{% else %}border-transparent{% endif %}"
+             :class="selected === {{ v['id'] }} ? 'border-indigo-500 ring-2 ring-indigo-300' : ''"
+             @click="selected = {{ v['id'] }}; selectedName = '{{ v['name'] | replace("'", "\\'") }}'">
+          <div class="px-4 py-3 flex items-center justify-between">
+            <span class="font-medium text-gray-800">{{ v['name'] }}</span>
+            {% if vol_to_bed.get(v['id']) %}
+            <span class="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full font-semibold">
+              Cama {{ vol_to_bed[v['id']] }}
+            </span>
+            {% else %}
+            <span class="text-xs text-gray-400">Sin cama</span>
+            {% endif %}
+          </div>
+        </div>
+        {% else %}
+        <p class="text-gray-400 text-sm">No hay voluntarios activos. <a href="/admin/voluntarios" class="text-indigo-600 underline">Agregar voluntarios</a></p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Beds column -->
+    <div>
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+        Camas ({{ beds | length }})
+      </h2>
+      <p x-show="selected === null" class="text-sm text-indigo-600 mb-3 bg-indigo-50 rounded-lg px-3 py-2">
+        ← Selecciona un voluntario para asignarlo a una cama
+      </p>
+      <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+        {% for bed in beds %}
+        {% set occupant = bed_to_vol.get(bed['id']) %}
+        <form method="POST" action="/turnos/{{ shift['id'] }}/camas/asignar">
+          <input type="hidden" name="volunteer_id" :value="selected">
+          <input type="hidden" name="bed_id" value="{{ bed['id'] }}">
+          <button type="submit"
+                  :disabled="selected === null"
+                  class="w-full min-h-[64px] rounded-xl border-2 text-sm font-semibold transition
+                         {% if occupant %}bg-green-100 border-green-400 text-green-800{% else %}bg-white border-gray-200 text-gray-700 hover:border-indigo-400 hover:bg-indigo-50{% endif %}
+                         disabled:opacity-40 disabled:cursor-not-allowed active:scale-95">
+            <div class="p-1 leading-tight">
+              <div>{{ bed['number'] }}</div>
+              {% if occupant %}
+              <div class="text-xs text-green-600 mt-0.5 truncate px-1">{{ occupant }}</div>
+              {% endif %}
+            </div>
+          </button>
+        </form>
+        {% endfor %}
+      </div>
+
+      <!-- Remove assignment -->
+      <div x-show="selected !== null" x-cloak class="mt-4">
+        <form method="POST" action="/turnos/{{ shift['id'] }}/camas/quitar">
+          <input type="hidden" name="volunteer_id" :value="selected">
+          <button type="submit"
+                  class="text-sm text-red-600 hover:text-red-800 underline"
+                  onclick="return confirm('¿Quitar asignación de cama?')">
+            Quitar cama asignada al voluntario seleccionado
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="mt-8 flex justify-between items-center">
+    <a href="/turnos/{{ shift['id'] }}" class="text-sm text-gray-500 hover:text-gray-700">← Volver al turno</a>
+    <a href="/turnos/{{ shift['id'] }}/camiones"
+       class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition">
+      Siguiente: Asignar camiones →
+    </a>
+  </div>
+
+</div>
+
+{% endblock %}

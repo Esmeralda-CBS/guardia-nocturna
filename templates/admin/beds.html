@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Camas — Guardia Nocturna{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-800">Camas</h1>
+</div>
+
+<!-- Add form -->
+<div class="bg-white rounded-xl shadow p-5 mb-6">
+  <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-3">Agregar cama</h2>
+  <form method="POST" action="/admin/camas/nueva" class="space-y-3">
+    <div class="flex gap-2">
+      <div class="flex-1">
+        <label class="text-xs text-gray-500 block mb-1">Número o nombre</label>
+        <input type="text" name="number" required placeholder="Ej: 1, 2, Cama Jefe…"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-red-500">
+      </div>
+      <div class="w-36">
+        <label class="text-xs text-gray-500 block mb-1">Pieza / Habitación</label>
+        <input type="text" name="room" placeholder="Ej: 1, 2, 3…"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-red-500">
+      </div>
+      <div class="self-end">
+        <button type="submit"
+                class="bg-red-700 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-red-800 active:scale-95 transition">
+          + Agregar
+        </button>
+      </div>
+    </div>
+    <input type="text" name="notes" placeholder="Notas opcionales…"
+           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+  </form>
+</div>
+
+<!-- Tip -->
+<div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-5 text-sm text-blue-800">
+  💡 Asigna una <strong>Pieza</strong> a cada cama para que aparezca en la vista TV del dormitorio. Las camas se agrupan por pieza y se muestran juntas.
+</div>
+
+<!-- List -->
+{% if beds %}
+<div class="bg-white rounded-xl shadow overflow-hidden">
+  <div class="divide-y divide-gray-100">
+    {% for bed in beds %}
+    <div class="flex items-center px-4 py-3 gap-3">
+      <span class="font-mono font-bold text-gray-800 w-16">{{ bed['number'] }}</span>
+
+      <!-- Inline room assignment -->
+      <form method="POST" action="/admin/camas/{{ bed['id'] }}/pieza" class="flex items-center gap-1">
+        <input type="text" name="room"
+               value="{{ bed['room'] or '' }}"
+               placeholder="Pieza"
+               class="w-20 border border-gray-200 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-indigo-400">
+        <button type="submit" class="text-xs text-indigo-600 hover:text-indigo-800 px-1" title="Guardar pieza">✓</button>
+      </form>
+
+      <span class="flex-1 text-sm text-gray-400">{{ bed['notes'] or '' }}</span>
+
+      {% if bed['room'] %}
+      <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">
+        Pieza {{ bed['room'] }}
+      </span>
+      {% else %}
+      <span class="text-xs text-gray-300">Sin pieza</span>
+      {% endif %}
+
+      <form method="POST" action="/admin/camas/{{ bed['id'] }}/eliminar"
+            onsubmit="return confirm('¿Eliminar cama {{ bed['number'] }}?')">
+        <button type="submit" class="text-red-400 hover:text-red-700 text-lg px-1 leading-none" title="Eliminar">✕</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<div class="bg-white rounded-xl shadow p-8 text-center text-gray-500">
+  No hay camas configuradas.
+</div>
+{% endif %}
+
+{% endblock %}
